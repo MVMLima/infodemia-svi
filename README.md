@@ -28,8 +28,8 @@ mas **funciona em qualquer lugar**: basta clonar, configurar os termos e rodar.
 ## Instalação
 
 ```bash
-git clone <url-do-repositorio> infodemia_svi
-cd infodemia_svi
+git clone https://github.com/MVMLima/infodemia-svi.git
+cd infodemia-svi
 # (opcional) python3 -m venv .venv && source .venv/bin/activate
 ```
 
