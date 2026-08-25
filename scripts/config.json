@@ -1,0 +1,8 @@
+{
+  "regiao": "Acre",
+  "termos": ["vacina", "vacinação", "imunização", "covid", "pandemia", "coronavírus", "vacina autismo", "chip vacina", "pandemia fabricada", "vacina altera dna"],
+  "limiar_zscore": 2.0,
+  "janela_media": 7,
+  "janela_dias": 30,
+  "max_resultados_por_termo": 10
+}

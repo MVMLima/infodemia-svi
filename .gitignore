@@ -1,0 +1,17 @@
+# Dados locais (banco SQLite criado em tempo de execução)
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Artefatos locais
+tests/zz_sentinela.txt
+.env
