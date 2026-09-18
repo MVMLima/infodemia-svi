@@ -1,0 +1,16 @@
+.git
+.github
+.gitignore
+.pytest_cache
+__pycache__
+**/__pycache__
+*.pyc
+
+# Runtime data never belongs in the image
+data/
+*.db
+*.log
+
+# Research material shipped outside the public repo
+arxiv/
+docs/

@@ -1,0 +1,32 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run test suite (offline, no dependencies to install)
+        run: PYTHONPATH=$PWD/scripts python -m unittest discover -s tests -v
+
+      - name: Smoke test — database schema initialises
+        run: |
+          export PYTHONPATH=$PWD/scripts
+          export SVI_DB_PATH="$RUNNER_TEMP/smoke.db"
+          python scripts/init_db.py
+          test -f "$SVI_DB_PATH" && echo "database created at $SVI_DB_PATH"
