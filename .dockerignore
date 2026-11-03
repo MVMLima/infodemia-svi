@@ -10,7 +10,3 @@ __pycache__
 data/
 *.db
 *.log
-
-# Research material shipped outside the public repo
-arxiv/
-docs/
