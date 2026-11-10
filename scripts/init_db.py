@@ -76,6 +76,12 @@ def main():
     except sqlite3.OperationalError:
         pass  # coluna já existe
 
+    # Migração: origem da data da menção ('pubdate' | 'fallback') — auditoria
+    try:
+        cursor.execute("ALTER TABLE mencoes ADD COLUMN data_fonte TEXT")
+    except sqlite3.OperationalError:
+        pass  # coluna já existe
+
     conn.commit()
     conn.close()
     print(f"Banco de dados criado/atualizado em {DB_PATH}")

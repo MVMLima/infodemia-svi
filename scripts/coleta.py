@@ -92,6 +92,21 @@ def _data_pubdate(pubdate: str) -> Optional[str]:
         return None
 
 
+def _resolver_data(pubdate: str, hoje: str, aceitar_sem_data: bool = False):
+    """
+    Decide a data e a origem da data de uma menção.
+
+    Retorna (data, fonte) ou (None, None) quando o item deve ser descartado.
+    Item sem pubDate válido não é evidência de menção naquele dia: por padrão é
+    descartado. Com aceitar_sem_data=True ele é mantido com a data de coleta,
+    marcado como 'fallback' para permitir auditoria posterior.
+    """
+    data_pub = _data_pubdate(pubdate)
+    if data_pub is None:
+        return (hoje, "fallback") if aceitar_sem_data else (None, None)
+    return data_pub, "pubdate"
+
+
 def _na_janela(pubdate: str, dias: int) -> bool:
     """
     True se a data de publicação está dentro da janela (últimos 'dias' dias).
@@ -195,6 +210,7 @@ def main() -> None:
     max_resultados = int(config.get("max_resultados_por_termo", 10))
     janela_dias = int(config.get("janela_dias", 7))
     regiao = config.get("regiao", REGIAO)
+    aceitar_sem_data = bool(config.get("aceitar_sem_data", False))
 
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
@@ -202,15 +218,22 @@ def main() -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL, termo TEXT NOT NULL, titulo TEXT NOT NULL,
             url TEXT, fonte TEXT, sentimento TEXT, score INTEGER DEFAULT 0,
-            boato_id INTEGER, created_at TEXT DEFAULT (datetime('now'))
+            boato_id INTEGER, created_at TEXT DEFAULT (datetime('now')),
+            data_fonte TEXT
         )"""
     )
+    # Migração: bancos antigos não têm data_fonte
+    try:
+        conn.execute("ALTER TABLE mencoes ADD COLUMN data_fonte TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_mencoes_uniq ON mencoes(date, termo, titulo)"
     )
 
     resultados_gerais = []
     total_mencoes = 0
+    descartados_sem_data = 0
 
     for termo in termos:
         try:
@@ -232,9 +255,13 @@ def main() -> None:
             if not _na_janela(m.get("pubdate", ""), janela_dias):
                 continue
 
+            # Sem pubDate válido: descarta (padrão) ou mantém marcado como fallback
+            data_menção, data_fonte = _resolver_data(m.get("pubdate", ""), hoje, aceitar_sem_data)
+            if data_menção is None:
+                descartados_sem_data += 1
+                continue
+
             sent = analisar_sentimento(m["titulo"])
-            # Data real da notícia (pubDate) quando disponível; fallback = hoje
-            data_menção = _data_pubdate(m.get("pubdate", "")) or hoje
 
             # Dedup global: se o título já foi captado (qualquer data/termo), pula
             cur_dedup = conn.cursor()
@@ -244,13 +271,13 @@ def main() -> None:
 
             try:
                 conn.execute(
-                    """INSERT INTO mencoes (date, termo, titulo, url, fonte, sentimento, score)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """INSERT INTO mencoes (date, termo, titulo, url, fonte, sentimento, score, data_fonte)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                        ON CONFLICT(date, termo, titulo) DO UPDATE SET
                            url=excluded.url, fonte=excluded.fonte,
                            sentimento=excluded.sentimento, score=excluded.score""",
                     (data_menção, termo, m["titulo"], m.get("url", ""), m.get("fonte", ""),
-                     sent["classificacao"], sent["score"]),
+                     sent["classificacao"], sent["score"], data_fonte),
                 )
             except Exception as e:
                 print(f"[coleta] erro ao gravar '{m['titulo'][:60]}': {e}", file=sys.stderr)
@@ -279,6 +306,7 @@ def main() -> None:
         "regiao": regiao,
         "termos": len(termos),
         "mencoes": total_mencoes,
+        "descartados_sem_data": descartados_sem_data,
         "resultados": resultados_gerais,
     }
     print(json.dumps(output, ensure_ascii=False, indent=2))

@@ -4,6 +4,27 @@ Todas as mudanças relevantes do SVI — Sistema de Vigilância de Infodemia.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.0] - 2026-11-09
+
+### Corrigido
+
+- **Fallback silencioso de data na coleta**: item cujo `pubDate` não podia ser
+  interpretado recebia a data da coleta. Em um único run manual (02/08/2026,
+  18h26–18h55) isso inseriu 91 registros de matérias de 2021 e 2025 datados de
+  02/08/2026 — 53% do volume do período —, produzindo um pico inexistente que
+  passou 47 dias de operação sem ser notado. Detectado por auditoria de
+  `created_at` (lote de 100 registros = teto de 10 termos × 10 resultados).
+
+### Adicionado
+
+- `_resolver_data()` em `scripts/coleta.py`: item sem data de publicação válida
+  é descartado (padrão) ou mantido marcado como `fallback`.
+- Coluna `mencoes.data_fonte` (`pubdate` | `fallback`) com migração automática
+  em `init_db.py` e `coleta.py` — permite auditar a proveniência da data.
+- Chave de configuração `aceitar_sem_data` (padrão `false`).
+- Métrica `descartados_sem_data` no JSON de saída da coleta.
+- 4 testes em `TestResolucaoDeData` (suíte: 52 testes).
+
 ## [1.0.0] - 2026-11-03
 
 Primeira versão estável, publicada para reuso por outros órgãos públicos.

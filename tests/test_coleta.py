@@ -9,6 +9,27 @@ sys.path.insert(0, str(SCRIPTS))
 import coleta  # noqa: E402
 
 
+class TestResolucaoDeData(unittest.TestCase):
+    """Item sem pubDate válido não pode ser datado pela coleta (pico fantasma de 02/08/2026)."""
+
+    def test_pubdate_valida_usa_data_da_publicacao(self):
+        data, fonte = coleta._resolver_data("Sat, 02 Aug 2026 10:30:00 GMT", "2026-08-09")
+        self.assertEqual(data, "2026-08-02")
+        self.assertEqual(fonte, "pubdate")
+
+    def test_sem_pubdate_descarta_por_padrao(self):
+        self.assertEqual(coleta._resolver_data("", "2026-08-09"), (None, None))
+        self.assertEqual(coleta._resolver_data(None, "2026-08-09"), (None, None))
+
+    def test_pubdate_invalida_descarta_por_padrao(self):
+        self.assertEqual(coleta._resolver_data("data quebrada", "2026-08-09"), (None, None))
+
+    def test_sem_pubdate_mantem_quando_configurado(self):
+        data, fonte = coleta._resolver_data("", "2026-08-09", aceitar_sem_data=True)
+        self.assertEqual(data, "2026-08-09")
+        self.assertEqual(fonte, "fallback")
+
+
 class TestParsingRSS(unittest.TestCase):
     def test_parse_news_xml_basico(self):
         xml = """<?xml version="1.0"?>
