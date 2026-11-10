@@ -8,7 +8,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # ubuntu-24.04: o runner ubuntu-latest passou a ser 26.04, onde o
+    # actions/setup-python não encontra binários do Python 3.9 (piso suportado).
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
